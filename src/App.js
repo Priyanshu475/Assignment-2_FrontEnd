@@ -1,8 +1,7 @@
-// App.js
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
-import MetroCities from './components/MetroCities'; // Import the MetroCities component
-import WeatherForecast from './components/WeatherForecast'; // Import the WeatherForecast component
+import MetroCities from './components/MetroCities';
+import WeatherForecast from './components/WeatherForecast';
 import { convertTemperature } from './utils/convertTemperature';
 
 const App = () => {
@@ -10,9 +9,7 @@ const App = () => {
   const [location, setLocation] = useState('');
   const [tempe, setTempe] = useState(null);
   const [unit, setUnit] = useState('fahrenheit');
-  const [city, setCity] = useState('');
   const [timestamp, setTimestamp] = useState(null);
-
 
   const url = `https://api.openweathermap.org/data/2.5/weather?q=${location}&units=imperial&appid=${process.env.REACT_APP_OPEN_WEATHER_API_KEY}`;
 
@@ -20,14 +17,33 @@ const App = () => {
     if (event.key === 'Enter') {
       axios.get(url)
         .then((response) => {
-          setData({
+          const weatherData = {
             ...response.data,
-            timestamp: Date.now(),  // Add the UNIX timestamp here
-          });
-          console.log('Here is the data: ', response.data);
+            timestamp: Date.now(),
+          };
+          setData(weatherData);
           setTempe(response.data.main.temp);
-          setTimestamp(Date.now());  // Set the timestamp in state
+          setTimestamp(Date.now());
           setLocation('');
+
+          // Prepare data for backend
+          const backendData = {
+            date: new Date(),
+            averageTemperature: response.data.main.temp,
+            feels_like: response.data.main.feels_like,
+            maxTemperature: response.data.main.temp_max,
+            minTemperature: response.data.main.temp_min,
+            dominantCondition: response.data.weather[0].main,
+          };
+
+          // Send data to backend
+          axios.post(`${process.env.REACT_APP_API_URL}/api/weather-summary/addData`, backendData)
+            .then(() => {
+              console.log('Weather data sent to backend successfully');
+            })
+            .catch((error) => {
+              console.error('Error sending weather data to backend:', error);
+            });
         })
         .catch((error) => {
           if (error.response && error.response.status === 404) {
@@ -105,7 +121,7 @@ const App = () => {
               {data.main ? (
                 <p className="bold">
                   {convertTemperature(data.main.feels_like, unit).toFixed(2)}°{unit === 'fahrenheit' ? 'F' : unit === 'celsius' ? 'C' : 'K'}
-                  </p>
+                </p>
               ) : null}
               <p>Feels Like</p>
             </div>
