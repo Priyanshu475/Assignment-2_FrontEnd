@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import MetroCities from './components/MetroCities';
 import WeatherForecast from './components/WeatherForecast';
@@ -10,8 +10,23 @@ const App = () => {
   const [tempe, setTempe] = useState(null);
   const [unit, setUnit] = useState('fahrenheit');
   const [timestamp, setTimestamp] = useState(null);
+  const [thresholdTemperature, setThresholdTemperature] = useState(null);
+  const [newThreshold, setNewThreshold] = useState('');
 
   const url = `https://api.openweathermap.org/data/2.5/weather?q=${location}&units=imperial&appid=${process.env.REACT_APP_OPEN_WEATHER_API_KEY}`;
+
+  // Fetch threshold temperature from backend on component mount
+  useEffect(() => {
+    axios.get(`${process.env.REACT_APP_API_URL}/api/weather-summary/thresholdTemperature`)
+      .then(response => {
+        if (response.data && response.data.thresholdTemperature !== undefined) {
+          setThresholdTemperature(response.data.thresholdTemperature);
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching threshold temperature from backend:', error);
+      });
+  }, []);
 
   const searchLocation = (event) => {
     if (event.key === 'Enter') {
@@ -26,7 +41,6 @@ const App = () => {
           setTimestamp(Date.now());
           setLocation('');
 
-          // Prepare data for backend
           const backendData = {
             date: new Date(),
             averageTemperature: response.data.main.temp,
@@ -36,7 +50,7 @@ const App = () => {
             dominantCondition: response.data.weather[0].main,
           };
 
-          // Send data to backend
+          // Send weather data to backend
           axios.post(`${process.env.REACT_APP_API_URL}/api/weather-summary/addData`, backendData)
             .then(() => {
               console.log('Weather data sent to backend successfully');
@@ -44,7 +58,14 @@ const App = () => {
             .catch((error) => {
               console.error('Error sending weather data to backend:', error);
             });
+                // Display weather data first, then check and alert
+        if (thresholdTemperature !== null && response.data.main.temp > thresholdTemperature) {
+          setTimeout(() => {
+            window.alert('Weather is bad!');
+          }, 0); // Alert is shown after data is displayed
+        }
         })
+
         .catch((error) => {
           if (error.response && error.response.status === 404) {
             window.alert('City not found. Please check the spelling and try again.');
@@ -61,6 +82,23 @@ const App = () => {
     if (data.main) {
       setTempe(convertTemperature(data.main.temp, event.target.value));
     }
+  };
+
+  const handleThresholdChange = () => {
+    const threshold = parseFloat(newThreshold);
+    if (isNaN(threshold)) {
+      return window.alert('Please enter a valid number for the threshold temperature.');
+    }
+
+    axios.post(`${process.env.REACT_APP_API_URL}/api/weather-summary/setThresholdTemperature`, { thresholdTemperature: threshold })
+      .then(() => {
+        setThresholdTemperature(threshold);
+        setNewThreshold('');
+        console.log('Threshold temperature updated successfully');
+      })
+      .catch(error => {
+        console.error('Error updating threshold temperature:', error);
+      });
   };
 
   const displayTemp = () => {
@@ -83,6 +121,36 @@ const App = () => {
         <MetroCities unit={unit} />
       </div>
 
+      <div className="threshold" style={{ textAlign: 'center', marginTop: '20px' }}>
+        {thresholdTemperature !== null ? (
+          <div>
+            <p>Threshold Temperature: {thresholdTemperature}°F</p>
+            <input
+              type="number"
+              value={newThreshold}
+              onChange={(event) => setNewThreshold(event.target.value)}
+              placeholder="Set Threshold Temperature"
+              style={{ textAlign: 'center', marginRight: '10px' }}
+            />
+            <button onClick={handleThresholdChange}>
+              Set Threshold
+            </button>
+          </div>
+        ) : (
+          <div>
+            <input
+              type="number"
+              value={newThreshold}
+              onChange={(event) => setNewThreshold(event.target.value)}
+              placeholder="Set Threshold Temperature"
+              style={{ textAlign: 'center' }}
+            />
+            <button onClick={handleThresholdChange} style={{ marginLeft: '10px' }}>
+              Set Threshold
+            </button>
+          </div>
+        )}
+      </div>
       <div className="search">
         <input
           value={location}
@@ -115,7 +183,7 @@ const App = () => {
             </div>
           )}
         </div>
-        {data.name !== undefined && (
+        {data.name && (
           <div className="bottom">
             <div className="feels">
               {data.main ? (

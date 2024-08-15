@@ -109,7 +109,7 @@ h1 {
   justify-content: space-evenly;
   text-align: center;
   width: 100%;
-  margin-top:250px;
+  margin-top:200px;
   padding: 1.2rem;
   border-radius: 12px;
   background-color: rgba(255,255,255, 0.2);
@@ -167,4 +167,36 @@ h1 {
 .temp-selector option {
   padding: 10px;
   font-size: 16px;
+}
+/* Styles for the threshold section */
+.threshold {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.threshold p {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.threshold input[type="number"] {
+  width: 150px;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-right: 10px;
+  box-sizing: border-box; /* Ensures padding does not affect width */
+}
+
+.threshold button {
+  padding: 10px 20px;
+  font-size: 16px;
+  color: #fff;
+  background-color: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
 }
